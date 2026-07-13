@@ -21,7 +21,7 @@ graph TD
     MOPE[Multi-Outcome Prediction Engine <br> Module 4] -->|Historical Risk Vectors| D
 
     %% Entry Point
-    A[Client Request: GET student_id] --> B{Cache Check}
+    A[GET student_id] --> B{Cache Check}
     
     %% Cache Branching
     B -->|Cache Hit| C[Return Cached JSON]
