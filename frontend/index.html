@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wellmate - Future Prediction Engine</title>
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
+    <div class="glow-bg"></div>
+    <div class="glow-bg-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-chart-line logo-icon"></i>
+                <div class="logo-text">
+                    <h1>State Future Prediction Engine</h1>
+                </div>
+            </div>
+            <div class="api-status" id="api-status">
+                <span class="status-dot status-loading"></span>
+                <span class="status-label">Connecting to FPE...</span>
+            </div>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <main class="dashboard-grid">
+            <!-- Sidebar Controls -->
+            <section class="sidebar-card glass-panel">
+                <h2 class="section-title"><i class="fa-solid fa-sliders"></i> Configuration</h2>
+                
+                <div class="form-group">
+                    <label for="student-select">Select Test Student</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-user-grad"></i>
+                        <select id="student-select">
+                            <option value="std-9874" selected>std-9874 (High Burnout Trajectory)</option>
+                            <option value="std-1001">std-1001 (Midterm Anxiety Cycle)</option>
+                            <option value="std-1002">std-1002 (Chronic Sleep Debt)</option>
+                            <option value="std-1003">std-1003 (Stable/Resilient Profile)</option>
+                            <option value="custom">-- Custom Student ID --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-hidden" id="custom-student-group">
+                    <label for="student-custom-input">Custom Student ID</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-keyboard"></i>
+                        <input type="text" id="student-custom-input" placeholder="e.g. std-9874">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="dimension-select">Forecast Target Dimension</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-brain"></i>
+                        <select id="dimension-select">
+                            <option value="burnout" selected>Burnout Risk</option>
+                            <option value="stress">Stress Level</option>
+                            <option value="anxiety">Anxiety Index</option>
+                            <option value="fatigue">Fatigue Indicator</option>
+                            <option value="sleep">Sleep Quality</option>
+                            <option value="mood">Mood Trajectory</option>
+                            <option value="focus">Focus Efficiency</option>
+                            <option value="social">Social Activity</option>
+                            <option value="academic">Academic Dedication</option>
+                            <option value="resilience">Resilience Coefficient</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="btn-fetch" class="btn-primary">
+                    <i class="fa-solid fa-rotate"></i> Generate Forecast
+                </button>
+
+                <div class="divider"></div>
+
+                <h3 class="subsection-title">Engine Information</h3>
+                <div class="engine-info">
+                    <div class="info-row">
+                        <span class="info-key">Forecasting Horizon:</span>
+                        <span class="info-val highlight-green">7 Days</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">Lookback Period:</span>
+                        <span class="info-val">14 Days</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">Sequence Model:</span>
+                        <span class="info-val">Temporal Fusion Transformer</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">Model Param Count:</span>
+                        <span class="info-val">4.6K parameters</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">Cache Storage:</span>
+                        <span class="info-val" id="cache-type">LocalMemory</span>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <h3 class="subsection-title">Score Interpretation Guide</h3>
+                <div class="score-guide">
+                    <p class="guide-intro">All wellness parameters are normalized on a scale from <strong>0.0 to 1.0</strong>:</p>
+                    <div class="guide-zone">
+                        <span class="zone-color zone-low"></span>
+                        <div class="zone-text">
+                            <strong>0.0 – 0.3 (Low Range)</strong>
+                            <span>Good for risks (e.g. Burnout), deficit for boosters (e.g. Sleep).</span>
+                        </div>
+                    </div>
+                    <div class="guide-zone">
+                        <span class="zone-color zone-mid"></span>
+                        <div class="zone-text">
+                            <strong>0.3 – 0.7 (Moderate Range)</strong>
+                            <span>Moderate/typical levels. Requires baseline monitoring.</span>
+                        </div>
+                    </div>
+                    <div class="guide-zone">
+                        <span class="zone-color zone-high"></span>
+                        <div class="zone-text">
+                            <strong>0.7 – 1.0 (High Range)</strong>
+                            <span>Critical alert for risks (e.g. Stress), optimal for boosters (e.g. Focus).</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chart Visualization -->
+            <section class="main-chart-card glass-panel">
+                <div class="chart-header">
+                    <div class="chart-title-area">
+                        <h2 class="section-title" id="chart-display-title">Burnout Risk Forecast</h2>
+                        <p class="chart-subtitle">7-Day projection with 10% and 90% confidence boundaries</p>
+                    </div>
+                    <div class="badge-group">
+                        <span id="badge-fallback" class="badge badge-hidden">Fallback Model Active</span>
+                        <span id="badge-anomaly" class="badge badge-red badge-hidden">Anomaly Warning</span>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="forecastChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Metadata & Trajectory Details -->
+            <section class="details-card glass-panel">
+                <h2 class="section-title"><i class="fa-solid fa-list-check"></i> Trajectory Values Matrix</h2>
+                <div class="table-container">
+                    <table class="data-table" id="forecast-table">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Lower (p10)</th>
+                                <th>Median (p50)</th>
+                                <th>Upper (p90)</th>
+                                <th>Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated dynamically -->
+                            <tr>
+                                <td colspan="5" class="table-empty">Generate forecast to display values.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Model Health Metrics -->
+            <section class="health-card glass-panel">
+                <h2 class="section-title"><i class="fa-solid fa-shield-halved"></i> Diagnostics & Security</h2>
+                <div class="diagnostic-grid">
+                    <div class="diag-item">
+                        <div class="diag-header">
+                            <span class="diag-title">Inference Latency</span>
+                            <i class="fa-solid fa-bolt diag-icon-yellow"></i>
+                        </div>
+                        <span class="diag-value" id="diag-latency">-- ms</span>
+                        <span class="diag-sub">Target: < 200ms</span>
+                    </div>
+                    <div class="diag-item">
+                        <div class="diag-header">
+                            <span class="diag-title">MASE Score</span>
+                            <i class="fa-solid fa-chart-simple diag-icon-green"></i>
+                        </div>
+                        <span class="diag-value">0.592</span>
+                        <span class="diag-sub">Target: < 1.10</span>
+                    </div>
+                    <div class="diag-item">
+                        <div class="diag-header">
+                            <span class="diag-title">Quantile Loss</span>
+                            <i class="fa-solid fa-bullseye diag-icon-purple"></i>
+                        </div>
+                        <span class="diag-value">0.018</span>
+                        <span class="diag-sub">Target: < 0.08</span>
+                    </div>
+                    <div class="diag-item">
+                        <div class="diag-header">
+                            <span class="diag-title">Prediction Drift</span>
+                            <i class="fa-solid fa-wind diag-icon-blue"></i>
+                        </div>
+                        <span class="diag-value">0.017</span>
+                        <span class="diag-sub">Wasserstein distance</span>
+                    </div>
+                </div>
+
+                <div class="security-notice">
+                    <i class="fa-solid fa-lock security-icon"></i>
+                    <div class="security-text">
+                        <h4>Secure Data Protocol Enabled</h4>
+                        <p>Wellness predictions are protected under token authorization and stored encrypted in databases to prevent profiling.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>

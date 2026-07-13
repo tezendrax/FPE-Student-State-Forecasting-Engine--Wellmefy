@@ -1,0 +1,40 @@
+{
+    "scaler_min": {
+        "stress": 0.0,
+        "anxiety": 0.0077283165956782,
+        "fatigue": 0.0,
+        "social": 0.0,
+        "academic": 0.3391720539269728,
+        "burnout": 0.0,
+        "sleep": 0.3498742971009547,
+        "mood": 0.4060961297181539,
+        "resilience": 0.431899947284183,
+        "focus": 0.3248802660810225,
+        "academic_pressure": 0.0018627259759257,
+        "sin_day": -0.9749279121818236,
+        "cos_day": -0.9009688679024191,
+        "sleep_volatility_7d": 0.0,
+        "stress_volatility_7d": 0.0,
+        "delta_stress_7d": -0.5378544884411192,
+        "sleep_stress_ratio": 0.3737755733814036
+    },
+    "scaler_max": {
+        "stress": 1.0,
+        "anxiety": 0.8068733899717645,
+        "fatigue": 0.8997937221675723,
+        "social": 1.0,
+        "academic": 0.92080449599571,
+        "burnout": 0.5309196224918666,
+        "sleep": 1.0,
+        "mood": 1.0,
+        "resilience": 0.8151373812743903,
+        "focus": 0.9174236383613664,
+        "academic_pressure": 1.0,
+        "sin_day": 0.9749279121818236,
+        "cos_day": 1.0,
+        "sleep_volatility_7d": 0.1769972528883722,
+        "stress_volatility_7d": 0.2043339645906884,
+        "delta_stress_7d": 0.5508340870427603,
+        "sleep_stress_ratio": 91936.7467605895
+    }
+}

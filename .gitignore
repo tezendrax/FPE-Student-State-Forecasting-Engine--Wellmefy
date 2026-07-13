@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest cache
+.pytest_cache/
+
+# Databases
+*.db
+sdt.db
+fpe.db
+
+# Large raw datasets (can be generated via script)
+data/*.csv
+
+# OS generated files
+.DS_Store
+Thumbs.db
