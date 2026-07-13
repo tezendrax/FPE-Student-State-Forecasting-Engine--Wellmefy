@@ -6,81 +6,26 @@ FPE operates as **Module 5** of the Wellmate wellness platform, utilizing deep t
 
 ---
 
-## 1. System & Architecture Workflows
+## 1. Detailed Execution Flowchart
 
-### 1.1 Complete System Integration Flow
-The FPE interacts with the Student Digital Twin database, processes temporal sequences, executes real-time inference, and feeds results downstream:
+The system layout is structured vertically to process telemetry inputs into multi-quantile forecasts, with a robust fallback pipeline:
 
 ```mermaid
 graph TD
-    %% Upstream Data Sources
-    U1[Multi-Outcome Prediction Engine Module 4] --> |Historical Risks| FPE[Future Prediction Engine]
-    U2[Student Digital Twin Module 3] --> |Encrypted State History| FPE
-    
-    %% FPE Internal Workflow
-    subgraph FPE [Future Prediction Engine Core]
-        DB_SDT[(Digital Twin sdt.db)] --> |Telemetry Decryption| DP[Data Preprocessing]
-        DP --> |Rolling Feature Engineering| TF[TFT Feature Sequence]
-        TF --> |Forward Pass Inference| TFT[Temporal Fusion Transformer]
-        TFT --> |Quantiles: p10, p50, p90| BC{Divergence Check}
-        BC --> |Normal Predictions| OUT[Clip to 0.0 - 1.0]
-        BC --> |Anomalous / NaNs| LRF[Linear Regression Fallback]
-        OUT --> API[FastAPI REST Endpoints]
-        LRF --> API
-        API --> DB_FPE[(FPE Database fpe.db)]
-        API --> Cache[(Redis / Local Memory Cache)]
-    end
-    
-    %% Downstream Components
-    API --> |JSON Forecasts| FE[Interactive Dashboard UI]
-    API --> |Predictive Trajectories| D1[Explainability Engine Module 6]
-    API --> |Predictive Trajectories| D2[Personalized Intervention Engine Module 7]
+    A[Telemetry / Wearables Input] --> B[Student Digital Twin SDT]
+    B --> C[State Vectors sdt.db]
+    C --> D[Feature Engineering & Scaling]
+    D --> E[14-Day Preprocessed History Sequence]
+    E --> F[Temporal Fusion Transformer Core]
+    F --> G[Quantile Projections: p10, p50, p90]
+    G --> H[Divergence Check & Bounds Clipping]
+    H --> I[FastAPI REST Endpoints]
+    I --> J[Interactive Dashboard UI]
 
     %% Styling
     classDef default fill:#1e1e2e,stroke:#3b3b4f,color:#cdd6f4;
-    classDef highlight fill:#11111b,stroke:#a6e3a1,color:#a6e3a1;
-    class FPE,TFT highlight;
-```
-
----
-
-### 1.2 Forecast Request Lifecycle
-This sequence diagram shows the step-by-step execution path when the client dashboard queries a student forecast:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Dashboard Frontend UI
-    participant API as FastAPI Server (Port 8003)
-    participant Cache as Redis / Local Cache
-    participant DB as SQLite sdt.db (Digital Twin)
-    participant Model as TFT Forecasting Core
-    participant Fallback as Linear Baseline Fallback
-    participant DB_FPE as SQLite fpe.db (Forecasts)
-    
-    User->>API: GET /api/v1/predictions/forecast?student_id=std-1001
-    API->>Cache: Check cached forecast for std-1001
-    alt Cache Hit
-        Cache-->>API: Return cached JSON
-        API-->>User: Render forecast graphs (Latency ~1ms)
-    else Cache Miss
-        API->>DB: Fetch encrypted state history (14 days lookback)
-        DB-->>API: Return encrypted records & active key
-        API->>API: Decrypt payloads using Fernet key
-        API->>API: Linearly interpolate missing dates & resample to daily grid
-        API->>API: Engineer features (Academic pressure, sleep-stress ratio, rolling std)
-        API->>Model: Execute forward pass (scaled features)
-        alt Inference Successful (Within bounds)
-            Model-->>API: Return p10, p50, p90 predictions
-        else Inference Fails or Diverges (values out of [-0.5, 1.5] bounds)
-            API->>Fallback: Trigger Linear Regression fallback
-            Fallback-->>API: Return linear forecast projections
-        end
-        API->>API: Clip final predictions to [0.0, 1.0] boundaries
-        API->>DB_FPE: Write daily forecast values to database
-        API->>Cache: Save forecast to Cache
-        API-->>User: Return forecast JSON (Latency ~50ms)
-    end
+    classDef highlight fill:#11111b,stroke:#3b82f6,color:#3b82f6;
+    class F highlight;
 ```
 
 ---
@@ -88,42 +33,6 @@ sequenceDiagram
 ## 2. Core Model Architecture (Temporal Fusion Transformer)
 
 The deep learning model is built using a custom light-weight **Temporal Fusion Transformer (TFT)** designed to run efficiently on low-resource environments (CPUs):
-
-```mermaid
-graph TD
-    %% Inputs
-    subgraph Input Layers
-        H[Historical Covariates: 14x17]
-        F[Future Covariates: 7x3]
-        S[Static Metadata: 10]
-    end
-    
-    %% Processing
-    subgraph Feature Gate Routing
-        H --> GRN1[Gated Residual Network GRN]
-        F --> GRN2[Gated Residual Network GRN]
-        S --> GRN3[Gated Residual Network GRN]
-    end
-    
-    %% Attention
-    subgraph Self-Attention Core
-        GRN1 --> SA[Temporal Multi-Head Self-Attention]
-        GRN2 --> SA
-    end
-    
-    %% Decoders
-    subgraph Quantile Decoder
-        SA --> QD[Quantile Projection Layers]
-        GRN3 --> QD
-    end
-    
-    %% Outputs
-    subgraph Target Forecasts
-        QD --> P10[p10 Quantile: 7x10]
-        QD --> P50[p50 Quantile: 7x10]
-        QD --> P90[p90 Quantile: 7x10]
-    end
-```
 
 * **Inputs & Features**:
   * **17 Historical Covariates**: 10 primary dimensions (stress, anxiety, fatigue, social, academic, burnout, sleep, mood, resilience, focus) + 7 engineered rolling metrics (Academic Workload Pressure, Day of Week Sine/Cosine, 7-Day Sleep Volatility, 7-Day Stress Volatility, 7-Day Stress Delta, Sleep-to-Stress Ratio).
@@ -134,7 +43,6 @@ graph TD
   * **50th Percentile (p50)**: Median/Most likely forecast trajectory.
   * **90th Percentile (p90)**: Pessimistic/Upper bound forecast.
 * **Gate mechanisms**: Utilizing **Gated Residual Networks (GRN)** and **Gated Linear Units (GLU)** to filter out redundant features.
-* **Self-Attention**: Multi-head self-attention layers to identify temporal dependencies.
 * **Complexity**: **4,628 parameters** (extremely lightweight, CPU latency $< 60\text{ ms}$).
 
 ### Linear Regression Fallback
@@ -142,7 +50,35 @@ If the TFT model encounters extreme anomalies (severe drift, values exceeding th
 
 ---
 
-## 3. Pre-Configured Test Cohort
+## 3. Model Evaluation & Results Graphs
+
+The TFT model has been evaluated on a hold-out test set (20% of the cohort):
+
+### 3.1 Evaluation Summary Metrics
+| Metric | Target Threshold | Evaluated Value | Status |
+|---|---|---|---|
+| **Quantile Loss (Pinball Loss)** | $< 0.08$ | **0.01804** | **PASSED** |
+| **Mean Absolute Scaled Error (MASE)** | $< 1.10$ | **0.59286** | **PASSED** |
+| **Prediction Drift (Wasserstein Distance)** | Info Only | **0.01793** | **HEALTHY** |
+
+### 3.2 Shaded Quantile Forecast Trajectory
+Below is a sample multi-quantile forecast trajectory showing 14 days of historical telemetry lookback, followed by the actual future trajectory and the predicted median (`p50`) path with its shaded `p10`-`p90` confidence bounds:
+
+![Sample Forecast Trajectory](data/plots/quantile_forecast_sample.png)
+
+### 3.3 Model Regression Performance (Actual vs. Predicted)
+The scatter plot below compares the ground truth indices against the model-predicted median (`p50`) values on the validation set, aligned with a perfect prediction diagonal:
+
+![Actual vs. Predicted Stress](data/plots/actual_vs_predicted.png)
+
+### 3.4 Top 10 Feature Importances
+Calculated using permutation importance on the hold-out validation set to measure each covariate's relative prediction error impact:
+
+![Feature Importances](data/plots/feature_importances.png)
+
+---
+
+## 4. Pre-Configured Test Cohort
 
 To demonstrate different student wellness trajectories in real-time, the database comes pre-populated with **30 days of custom daily history** for 4 distinct student profiles inside `sdt.db`:
 
@@ -150,38 +86,6 @@ To demonstrate different student wellness trajectories in real-time, the databas
 2. **`std-1001` (Midterm Anxiety Cycle)**: Shows a classic stress/anxiety spike centered around the midterm exam date (Day 18), which successfully recovers back to normal.
 3. **`std-1002` (Chronic Sleep Debt)**: Displays high fatigue and extremely low sleep quality (`~0.22`) due to cumulative sleep debt, leading to moderate-high burnout (`~0.63`).
 4. **`std-1003` (Stable/Resilient Profile)**: Balanced wellness indices (low stress, low anxiety, high resilience, and stable mood).
-
----
-
-## 4. Evaluation Results
-
-The TFT model has been evaluated on a hold-out test set (20% of the cohort):
-
-### 4.1 Evaluation Summary Metrics
-| Metric | Target Threshold | Evaluated Value | Status |
-|---|---|---|---|
-| **Quantile Loss (Pinball Loss)** | $< 0.08$ | **0.01804** | **PASSED** |
-| **Mean Absolute Scaled Error (MASE)** | $< 1.10$ | **0.59286** | **PASSED** |
-| **Prediction Drift (Wasserstein Distance)** | Info Only | **0.01793** | **HEALTHY** |
-
-### 4.2 Forecast Output Trajectory Visualization
-Below is a conceptual representation of how the three quantiles ($p10$, $p50$, $p90$) are served by the API. The solid line represents the most likely trajectory ($p50$), and the dashed boundaries represent the confidence interval ($p10$ to $p90$):
-
-```mermaid
-graph LR
-    subgraph Quantile Forecast Trajectory
-        D1((Day 1)) --> D2((Day 2)) --> D3((Day 3)) --> D4((Day 4)) --> D5((Day 5)) --> D6((Day 6)) --> D7((Day 7))
-        
-        %% Visual limits representation
-        p90[p90 upper bound: high uncertainty / pessimistic path]
-        p50[p50 median curve: curvy, non-linear forecast path]
-        p10[p10 lower bound: low uncertainty / optimistic path]
-        
-        D4 -.-> p90
-        D4 === p50
-        D4 -.-> p10
-    end
-```
 
 ---
 
@@ -215,6 +119,10 @@ graph LR
 * **Evaluate the Trained Checkpoint**:
   ```bash
   python scripts/evaluate_model.py
+  ```
+* **Generate Evaluation Graphs**:
+  ```bash
+  python scripts/generate_plots.py
   ```
 * **Populate Test DB with Cohorts**:
   ```bash
