@@ -16,12 +16,16 @@ The forecasting lifecycle processes telemetry data, executes self-attention fore
 
 ```mermaid
 graph TD
+    %% Upstream Data Sources
+    SDT[(Digital Twin sdt.db <br> Module 3)] -->|Encrypted State History| D
+    MOPE[Multi-Outcome Prediction Engine <br> Module 4] -->|Historical Risk Vectors| D
+
     %% Entry Point
     A[Client Request: GET student_id] --> B{Cache Check}
     
     %% Cache Branching
     B -->|Cache Hit| C[Return Cached JSON]
-    B -->|Cache Miss| D[Fetch sdt.db History]
+    B -->|Cache Miss| D[Fetch Telemetry Data]
     
     %% Processing Pipeline
     D --> E[Decrypt Telemetry with Fernet Key]
@@ -50,8 +54,10 @@ graph TD
     classDef default fill:#1e1e2e,stroke:#3b3b4f,color:#cdd6f4;
     classDef decision fill:#313244,stroke:#f9e2af,color:#f9e2af;
     classDef model fill:#11111b,stroke:#a6e3a1,color:#a6e3a1,stroke-width:2px;
+    classDef database fill:#11111b,stroke:#89dceb,color:#89dceb,stroke-width:1px;
     class B,I decision;
     class H model;
+    class SDT database;
 ```
 
 ---
