@@ -81,20 +81,40 @@ The TFT model has been evaluated on a hold-out test set (20% of the cohort):
 | **Mean Absolute Scaled Error (MASE)** | $< 1.10$ | **0.59286** | **PASSED** |
 | **Prediction Drift (Wasserstein Distance)** | Info Only | **0.01793** | **HEALTHY** |
 
-### 3.2 Shaded Quantile Forecast Trajectory
-Below is a sample multi-quantile forecast trajectory showing 14 days of historical telemetry lookback, followed by the actual future trajectory and the predicted median (`p50`) path with its shaded `p10`-`p90` confidence bounds:
+---
+
+### 3.2 Shaded Quantile Forecast Trajectory (Quantile Forecast Sample)
+This line plot demonstrates a sample multi-quantile forecast for a student's stress level:
+* **Timeline (X-Axis)**: Measured relative to the forecast epoch (Day 0 represents "today"). Historical lookback covers days `-13` to `0` (14 days), while the forecast horizon spans days `1` to `7` (7 days).
+* **Stress Score Value (Y-Axis)**: Normalized index between `0.0` (optimal/low stress) and `1.0` (critical stress).
+* **Historical Lookback (Gray Circle Line)**: Actual student telemetry parsed from `sdt.db`.
+* **Actual Trajectory (Green Square Line)**: Ground truth future timeline.
+* **Predicted Median (p50 - Blue Triangle Line)**: The model's primary predicted path.
+* **90% Confidence Band (Shaded Light Blue)**: Shaded range bounded by the 10th percentile (`p10` lower dashed limit) and 90th percentile (`p90` upper dashed limit). A wider band indicates higher forecasting uncertainty (typically during high-stress exam periods), while a narrow band indicates a stable, high-confidence trajectory.
 
 ![Sample Forecast Trajectory](data/plots/quantile_forecast_sample.png)
 
-### 3.3 Model Regression Performance (Actual vs. Predicted)
-The scatter plot below compares the ground truth indices against the model-predicted median (`p50`) values on the validation set, aligned with a perfect prediction diagonal:
+---
+
+### 3.3 Model Regression Performance (Actual vs. Predicted Stress)
+This scatter plot validates the forecasting accuracy of the median (`p50`) stress predictions against the ground truth on all validation time-steps:
+* **Axes**: Ground truth stress index is mapped to the X-axis, and model-predicted stress is mapped to the Y-axis.
+* **Perfect Prediction Line (Red Dashed Diagonal)**: Represents the ideal scenario where predictions exactly match the actual values ($y = x$).
+* **Data Density (Green Circles)**: Validation predictions cluster closely along the diagonal, proving that the TFT attention mechanism accurately tracks non-linear fluctuations (such as mid-semester workload peaks) rather than returning flat baseline averages.
 
 ![Actual vs. Predicted Stress](data/plots/actual_vs_predicted.png)
 
-### 3.4 Top 10 Feature Importances
-Calculated using permutation importance on the hold-out validation set to measure each covariate's relative prediction error impact:
+---
+
+### 3.4 Top 10 Feature Importances (Permutation Importance)
+This horizontal bar chart displays the top 10 historical features that contribute most to the model's forecasting performance:
+* **Permutation Importance Metric**: Computed by measuring the increase in Mean Squared Error (MSE) on the validation set when shuffling each feature's sequence values. A larger increase represents a higher dependency on that covariate.
+* **Scores**: Normalized to a relative scale between `0.0` and `1.0`.
+* **Key Observations**: Primary indices like `stress` and `anxiety` show high importance, which is expected. Critically, engineered features like `sleep_stress_ratio` (stress buffering) and `academic_pressure` (distance to exams) carry significant relative importance scores, confirming that our feature engineering pipeline provides vital context for predicting wellness trends.
 
 ![Feature Importances](data/plots/feature_importances.png)
+
+---
 
 ---
 
