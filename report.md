@@ -12,24 +12,44 @@ The Future Prediction Engine (FPE) is designed to forecast student wellness vect
 ---
 
 ## 2. Detailed Execution Flowchart
-The system layout is structured vertically to process telemetry inputs into multi-quantile forecasts, with a robust fallback pipeline:
+The forecasting lifecycle processes telemetry data, executes self-attention forecasting, and routes queries through caching and anomaly fallback pathways:
 
 ```mermaid
 graph TD
-    A[Telemetry / Wearables Input] --> B[Student Digital Twin SDT]
-    B --> C[State Vectors sdt.db]
-    C --> D[Feature Engineering & Scaling]
-    D --> E[14-Day Preprocessed History Sequence]
-    E --> F[Temporal Fusion Transformer Core]
-    F --> G[Quantile Projections: p10, p50, p90]
-    G --> H[Divergence Check & Bounds Clipping]
-    H --> I[FastAPI REST Endpoints]
-    I --> J[Interactive Dashboard UI]
+    %% Entry Point
+    A[Client Request: GET student_id] --> B{Cache Check}
+    
+    %% Cache Branching
+    B -->|Cache Hit| C[Return Cached JSON]
+    B -->|Cache Miss| D[Fetch sdt.db History]
+    
+    %% Processing Pipeline
+    D --> E[Decrypt Telemetry with Fernet Key]
+    E --> F[Interpolate Gaps & Scale Features]
+    F --> G[Extract 17 Historical Covariates]
+    G --> H[Temporal Fusion Transformer Inference]
+    
+    %% Divergence Check Branching
+    H --> I{Divergence Check}
+    I -->|Normal: Within Bounds| J[Clip Predictions to 0.0 - 1.0]
+    I -->|Anomalous: NaNs or Out of Bounds| K[Trigger Linear Regression Fallback]
+    
+    %% Target Outputs
+    J --> L[p10 / p50 / p90 Quantile Forecasts]
+    K --> M[Linear Trajectory Projections]
+    
+    %% Concluding Pipeline
+    L --> N[Save to fpe.db & Cache]
+    M --> N
+    N --> O[Return JSON Response to Dashboard UI]
+    C --> O
 
     %% Styling
     classDef default fill:#1e1e2e,stroke:#3b3b4f,color:#cdd6f4;
+    classDef decision fill:#313244,stroke:#f9e2af,color:#f9e2af;
     classDef highlight fill:#11111b,stroke:#3b82f6,color:#3b82f6;
-    class F highlight;
+    class B,I decision;
+    class H highlight;
 ```
 
 ---
