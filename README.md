@@ -128,6 +128,54 @@ The FastAPI endpoint `GET /api/v1/predictions/forecast` outputs a detailed multi
 
 The deep learning model is built using a custom light-weight **Temporal Fusion Transformer (TFT)** designed to run efficiently on low-resource environments (CPUs):
 
+```mermaid
+graph TD
+    %% Inputs
+    subgraph Input Layers
+        H[Historical Covariates: 14x17]
+        F[Future Covariates: 7x3]
+        S[Static Metadata: 10]
+    end
+    
+    %% Processing
+    subgraph Feature Gate Routing
+        H --> GRN1[Gated Residual Network GRN]
+        F --> GRN2[Gated Residual Network GRN]
+        S --> GRN3[Gated Residual Network GRN]
+    end
+    
+    %% Attention
+    subgraph Self-Attention Core
+        GRN1 --> SA[Temporal Multi-Head Self-Attention]
+        GRN2 --> SA
+    end
+    
+    %% Decoders
+    subgraph Quantile Decoder
+        SA --> QD[Quantile Projection Layers]
+        GRN3 --> QD
+    end
+    
+    %% Outputs
+    subgraph Target Forecasts
+        QD --> P10[p10 Quantile: 7x10]
+        QD --> P50[p50 Quantile: 7x10]
+        QD --> P90[p90 Quantile: 7x10]
+    end
+
+    %% Styling
+    classDef default fill:#1e1e2e,stroke:#3b3b4f,color:#cdd6f4;
+    classDef layer fill:#11111b,stroke:#89b4fa,color:#89b4fa,stroke-width:1px;
+    class H,F,S,GRN1,GRN2,GRN3,SA,QD,P10,P50,P90 layer;
+```
+
+### Model Processing Flow
+1. **Input Layers**: Feeds 14x17 historical metrics, 7x3 known future calendar plans, and 10 static baseline offsets.
+2. **Feature Gate Routing**: Gated Residual Networks (GRN) with Gated Linear Units (GLU) dynamically filter out noisy variables, ensuring only relevant indicators affect the self-attention core.
+3. **Self-Attention Core**: Multi-Head Attention identifies temporal trends and correlations across history steps.
+4. **Quantile Decoder**: Projects hidden features into three target quantile envelopes.
+5. **Target Forecasts**: Generates the p10, p50, and p90 parameters for all 10 wellness dimensions over the upcoming 7 days.
+
 * **Inputs & Features**:
   * **17 Historical Covariates**: 10 primary dimensions (stress, anxiety, fatigue, social, academic, burnout, sleep, mood, resilience, focus) + 7 engineered rolling metrics (Academic Workload Pressure, Day of Week Sine/Cosine, 7-Day Sleep Volatility, 7-Day Stress Volatility, 7-Day Stress Delta, Sleep-to-Stress Ratio).
   * **3 Future Known Covariates**: Workload Academic Pressure, Day of Week Sine/Cosine.
