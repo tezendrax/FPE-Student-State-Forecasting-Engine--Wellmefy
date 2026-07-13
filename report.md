@@ -12,7 +12,7 @@ The Future Prediction Engine (FPE) is designed to forecast student wellness vect
 ---
 
 ## 2. Detailed Execution Flowchart
-The forecasting lifecycle processes telemetry data, executes self-attention forecasting, and routes queries through caching and anomaly fallback pathways:
+The forecasting lifecycle processes telemetry data, executes self-attention forecasting, and routes queries through caching and anomaly fallback pathways. The primary deep learning model is located at `/data/models/tft_model_7d.pt`:
 
 ```mermaid
 graph TD
@@ -27,7 +27,9 @@ graph TD
     D --> E[Decrypt Telemetry with Fernet Key]
     E --> F[Interpolate Gaps & Scale Features]
     F --> G[Extract 17 Historical Covariates]
-    G --> H[Temporal Fusion Transformer Inference]
+    
+    %% Forecasting Core (highlighting model location!)
+    G --> H[TFT Model Core <br> /data/models/tft_model_7d.pt]
     
     %% Divergence Check Branching
     H --> I{Divergence Check}
@@ -47,9 +49,75 @@ graph TD
     %% Styling
     classDef default fill:#1e1e2e,stroke:#3b3b4f,color:#cdd6f4;
     classDef decision fill:#313244,stroke:#f9e2af,color:#f9e2af;
-    classDef highlight fill:#11111b,stroke:#3b82f6,color:#3b82f6;
+    classDef model fill:#11111b,stroke:#a6e3a1,color:#a6e3a1,stroke-width:2px;
     class B,I decision;
-    class H highlight;
+    class H model;
+```
+
+---
+
+## 2.2 Forecast Output Structure
+
+The FastAPI endpoint `GET /api/v1/predictions/forecast` outputs a detailed multi-quantile forecast trajectory covering all 10 student state dimensions over the 7-day prediction window:
+
+### Output Attributes
+* **Quantiles Explained**:
+  * **`p10` (Lower Limit)**: The 10th percentile forecast. Represents the optimistic boundary for negative metrics (e.g., Stress, Burnout) and the deficit boundary for positive metrics (e.g., Sleep, Focus).
+  * **`p50` (Median Target)**: The 50th percentile forecast. Represents the most probable, curvy non-linear trajectory of the student's state.
+  * **`p90` (Upper Limit)**: The 90th percentile forecast. Represents the pessimistic boundary/alert limit for negative metrics and the optimal boundary for positive metrics.
+* **Metadata Fields**:
+  * `student_id`: Unique identifier of the student.
+  * `horizon_days`: Length of prediction window (e.g., `7` days).
+  * `forecast_epoch`: Unix timestamp of the prediction run.
+  * `fallback_used`: Boolean flag. `True` if predictions diverged or generated NaNs, triggering the linear fallback model.
+  * `anomaly_warning`: Boolean flag alerting administrators of abnormal telemetry drift.
+  * `latency_ms`: Backend processing latency (typically $< 60\text{ ms}$).
+
+### Sample Output Payload
+```json
+{
+  "student_id": "std-9874",
+  "horizon_days": 7,
+  "forecast_epoch": 1783903085,
+  "fallback_used": false,
+  "anomaly_warning": false,
+  "latency_ms": 56.4,
+  "forecast": [
+    {
+      "day": 1,
+      "stress_p10": 0.2878,
+      "stress_p50": 0.3668,
+      "stress_p90": 0.4631,
+      "anxiety_p10": 0.3083,
+      "anxiety_p50": 0.3361,
+      "anxiety_p90": 0.4307,
+      "burnout_p10": 0.5272,
+      "burnout_p50": 0.6341,
+      "burnout_p90": 0.7196,
+      "sleep_p10": 0.5373,
+      "sleep_p50": 0.5481,
+      "sleep_p90": 0.6719,
+      "mood_p10": 0.3707,
+      "mood_p50": 0.4803,
+      "mood_p90": 0.6080,
+      "resilience_p10": 0.4679,
+      "resilience_p50": 0.5720,
+      "resilience_p90": 0.6604,
+      "focus_p10": 0.5078,
+      "focus_p50": 0.6150,
+      "focus_p90": 0.7239,
+      "fatigue_p10": 0.3067,
+      "fatigue_p50": 0.3967,
+      "fatigue_p90": 0.4379,
+      "social_p10": 0.4911,
+      "social_p50": 0.5650,
+      "social_p90": 0.6141,
+      "academic_p10": 0.5173,
+      "academic_p50": 0.6171,
+      "academic_p90": 0.6956
+    }
+  ]
+}
 ```
 
 ---
